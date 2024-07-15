@@ -258,19 +258,36 @@ func (c *ContentRepo) CommentToStory(ctx context.Context, req *pb.CommentStoryRe
 	return &comment, nil
 }
 
-func (c *ContentRepo) GetCommentsOfStory(ctx context.Context, req *pb.StoryId) (*pb.GetCommentsOfStoryRes, error) {
-	// Query to get comments of a specific story
-	query := `
-        SELECT 
-            comments.id, comments.content, comments.created_at, 
-            users.id, users.username, users.full_name 
-        FROM comments 
-        INNER JOIN users ON comments.author_id = users.id 
-        WHERE comments.story_id = $1 
-        ORDER BY comments.created_at ASC
-    `
+func (c *ContentRepo) GetCommentsOfStory(ctx context.Context, req *pb.GetCommentsOfStoryReq) (*pb.GetCommentsOfStoryRes, error) {
+	// Initialize response structure
+	res := &pb.GetCommentsOfStoryRes{
+		Offset: req.Offset,
+		Limit:  req.Limit,
+	}
 
-	rows, err := c.DB.QueryContext(ctx, query, req.Id)
+	// Query to get the total number of comments for the given story
+	totalQuery := `
+        SELECT COUNT(*)
+        FROM comments
+        WHERE story_id = $1
+    `
+	var totalComments int64
+	err := c.DB.QueryRowContext(ctx, totalQuery, req.StoryId).Scan(&totalComments)
+	if err != nil {
+		return nil, err
+	}
+	res.Total = totalComments
+
+	// Query to get the comments for the given story with pagination
+	commentsQuery := `
+        SELECT c.id, c.content, c.created_at, u.id, u.username, u.full_name
+        FROM comments c
+        JOIN users u ON c.author_id = u.id
+        WHERE c.story_id = $1
+        ORDER BY c.created_at DESC
+        OFFSET $2 LIMIT $3
+    `
+	rows, err := c.DB.QueryContext(ctx, commentsQuery, req.StoryId, req.Offset, req.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -280,25 +297,17 @@ func (c *ContentRepo) GetCommentsOfStory(ctx context.Context, req *pb.StoryId) (
 	for rows.Next() {
 		var comment pb.Comments
 		var author pb.Author
-		if err := rows.Scan(&comment.Id, &comment.Content, &comment.CreatedAt, &author.UserId, &author.Username, &author.FullName); err != nil {
+		err := rows.Scan(&comment.Id, &comment.Content, &comment.CreatedAt, &author.UserId, &author.Username, &author.FullName)
+		if err != nil {
 			return nil, err
 		}
 		comment.Author = &author
 		comments = append(comments, &comment)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
+	res.Comments = comments
 
-	response := &pb.GetCommentsOfStoryRes{
-		Comments: comments,
-		Total:    int64(len(comments)),
-		Offset:   0,                    // Assuming offset is 0 for now
-		Limit:    int64(len(comments)), // Assuming limit is the total number of comments for now
-	}
-
-	return response, nil
+	return res, nil
 }
 
 func (c *ContentRepo) Like(ctx context.Context, req *pb.LikeReq) (*pb.LikeRes, error) {

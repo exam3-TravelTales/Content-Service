@@ -28,7 +28,7 @@ type ContentClient interface {
 	GetAllStories(ctx context.Context, in *GetAllStoriesReq, opts ...grpc.CallOption) (*GetAllStoriesRes, error)
 	GetStory(ctx context.Context, in *StoryId, opts ...grpc.CallOption) (*GetStoryRes, error)
 	CommentStory(ctx context.Context, in *CommentStoryReq, opts ...grpc.CallOption) (*CommentStoryRes, error)
-	GetCommentsOfStory(ctx context.Context, in *StoryId, opts ...grpc.CallOption) (*GetCommentsOfStoryRes, error)
+	GetCommentsOfStory(ctx context.Context, in *GetCommentsOfStoryReq, opts ...grpc.CallOption) (*GetCommentsOfStoryRes, error)
 	Like(ctx context.Context, in *LikeReq, opts ...grpc.CallOption) (*LikeRes, error)
 	Itineraries(ctx context.Context, in *ItinerariesReq, opts ...grpc.CallOption) (*ItinerariesRes, error)
 	UpdateItineraries(ctx context.Context, in *UpdateItinerariesReq, opts ...grpc.CallOption) (*ItinerariesRes, error)
@@ -107,7 +107,7 @@ func (c *contentClient) CommentStory(ctx context.Context, in *CommentStoryReq, o
 	return out, nil
 }
 
-func (c *contentClient) GetCommentsOfStory(ctx context.Context, in *StoryId, opts ...grpc.CallOption) (*GetCommentsOfStoryRes, error) {
+func (c *contentClient) GetCommentsOfStory(ctx context.Context, in *GetCommentsOfStoryReq, opts ...grpc.CallOption) (*GetCommentsOfStoryRes, error) {
 	out := new(GetCommentsOfStoryRes)
 	err := c.cc.Invoke(ctx, "/content.Content/GetCommentsOfStory", in, out, opts...)
 	if err != nil {
@@ -252,7 +252,7 @@ type ContentServer interface {
 	GetAllStories(context.Context, *GetAllStoriesReq) (*GetAllStoriesRes, error)
 	GetStory(context.Context, *StoryId) (*GetStoryRes, error)
 	CommentStory(context.Context, *CommentStoryReq) (*CommentStoryRes, error)
-	GetCommentsOfStory(context.Context, *StoryId) (*GetCommentsOfStoryRes, error)
+	GetCommentsOfStory(context.Context, *GetCommentsOfStoryReq) (*GetCommentsOfStoryRes, error)
 	Like(context.Context, *LikeReq) (*LikeRes, error)
 	Itineraries(context.Context, *ItinerariesReq) (*ItinerariesRes, error)
 	UpdateItineraries(context.Context, *UpdateItinerariesReq) (*ItinerariesRes, error)
@@ -292,7 +292,7 @@ func (UnimplementedContentServer) GetStory(context.Context, *StoryId) (*GetStory
 func (UnimplementedContentServer) CommentStory(context.Context, *CommentStoryReq) (*CommentStoryRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CommentStory not implemented")
 }
-func (UnimplementedContentServer) GetCommentsOfStory(context.Context, *StoryId) (*GetCommentsOfStoryRes, error) {
+func (UnimplementedContentServer) GetCommentsOfStory(context.Context, *GetCommentsOfStoryReq) (*GetCommentsOfStoryRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCommentsOfStory not implemented")
 }
 func (UnimplementedContentServer) Like(context.Context, *LikeReq) (*LikeRes, error) {
@@ -459,7 +459,7 @@ func _Content_CommentStory_Handler(srv interface{}, ctx context.Context, dec fun
 }
 
 func _Content_GetCommentsOfStory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StoryId)
+	in := new(GetCommentsOfStoryReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -471,7 +471,7 @@ func _Content_GetCommentsOfStory_Handler(srv interface{}, ctx context.Context, d
 		FullMethod: "/content.Content/GetCommentsOfStory",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ContentServer).GetCommentsOfStory(ctx, req.(*StoryId))
+		return srv.(ContentServer).GetCommentsOfStory(ctx, req.(*GetCommentsOfStoryReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }

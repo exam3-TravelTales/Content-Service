@@ -86,7 +86,7 @@ func (u *ContentService) CommentStory(ctx context.Context, req *pb.CommentStoryR
 	return res, nil
 }
 
-func (u *ContentService) GetCommentsOfStory(ctx context.Context, req *pb.StoryId) (*pb.GetCommentsOfStoryRes, error) {
+func (u *ContentService) GetCommentsOfStory(ctx context.Context, req *pb.GetCommentsOfStoryReq) (*pb.GetCommentsOfStoryRes, error) {
 	u.Log.Info("GetCommentsOfStory rpc method started")
 	res, err := u.Repo.GetCommentsOfStory(ctx, req)
 	if err != nil {
