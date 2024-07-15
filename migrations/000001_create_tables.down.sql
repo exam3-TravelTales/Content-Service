@@ -1,6 +1,7 @@
 -- Drop tables in reverse order of their dependencies
 DROP TABLE IF EXISTS travel_tips;
 DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS comment;
 DROP TABLE IF EXISTS itinerary_activities;
 DROP TABLE IF EXISTS itinerary_destinations;
 DROP TABLE IF EXISTS itineraries;

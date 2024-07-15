@@ -83,6 +83,14 @@ CREATE TABLE IF NOT EXISTS itinerary_activities (
     activity TEXT NOT NULL
     );
 
+CREATE TABLE IF NOT EXISTS comment (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    content TEXT NOT NULL,
+    author_id UUID REFERENCES users(id),
+    itinerary_id UUID REFERENCES itineraries(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS destinations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
@@ -90,6 +98,7 @@ CREATE TABLE IF NOT EXISTS destinations (
     description TEXT,
     best_time_to_visit VARCHAR(100),
     average_cost_per_day DECIMAL(10, 2),
+    popularity_score int,
     currency VARCHAR(3),
     language VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -103,7 +112,7 @@ CREATE TABLE IF NOT EXISTS messages (
     recipient_id UUID REFERENCES users(id),
     content TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-                             );
+);
 
 CREATE TABLE IF NOT EXISTS travel_tips (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
