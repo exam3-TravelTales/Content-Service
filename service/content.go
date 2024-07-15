@@ -129,3 +129,113 @@ func (u *ContentService) UpdateItineraries(ctx context.Context, req *pb.UpdateIt
 	u.Log.Info("UpdateItineraries rpc method finished")
 	return res, nil
 }
+
+func (u *ContentService) DeleteItineraries(ctx context.Context, req *pb.StoryId) (*pb.Void, error) {
+	u.Log.Info("DeleteItineraries rpc method started")
+	err := u.Repo.DeleteItineraries(ctx, req)
+	if err != nil {
+		u.Log.Error(err.Error())
+		return nil, err
+	}
+	u.Log.Info("DeleteItineraries rpc method finished")
+	return &pb.Void{}, nil
+}
+func (u *ContentService) GetItineraries(ctx context.Context, req *pb.GetItinerariesReq) (*pb.GetItinerariesRes, error) {
+	u.Log.Info("GetItineraries rpc method started")
+	res, err := u.Repo.GetItineraries(ctx, req)
+	if err != nil {
+		u.Log.Error(err.Error())
+		return nil, err
+	}
+	u.Log.Info("GetItineraries rpc method finished")
+	return res, nil
+}
+func (u *ContentService) GetItinerariesById(ctx context.Context, req *pb.StoryId) (*pb.GetItinerariesByIdRes, error) {
+	u.Log.Info("GetItinerariesById rpc method started")
+	res, err := u.Repo.GetItinerariesById(ctx, req)
+	if err != nil {
+		u.Log.Error(err.Error())
+		return nil, err
+	}
+	u.Log.Info("GetItinerariesById rpc method finished")
+	return res, nil
+}
+func (u *ContentService) CommentItineraries(ctx context.Context, req *pb.CommentItinerariesReq) (*pb.CommentItinerariesRes, error) {
+	u.Log.Info("CommentItineraries rpc method started")
+	res, err := u.Repo.CommentItineraries(ctx, req)
+	if err != nil {
+		u.Log.Error(err.Error())
+		return nil, err
+	}
+	u.Log.Info("CommentItineraries rpc method finished")
+	return res, nil
+}
+func (u *ContentService) GetDestinations(ctx context.Context, req *pb.GetDestinationsReq) (*pb.GetDestinationsRes, error) {
+	u.Log.Info("GetDestinations rpc method started")
+	res, err := u.Repo.GetDestinations(ctx, req)
+	if err != nil {
+		u.Log.Error(err.Error())
+		return nil, err
+	}
+	u.Log.Info("GetDestinations rpc method finished")
+	return res, nil
+}
+func (u *ContentService) GetDestinationsById(ctx context.Context, req *pb.GetDestinationsByIdReq) (*pb.GetDestinationsByIdRes, error) {
+	u.Log.Info("GetDestinationsById rpc method started")
+	res, err := u.Repo.GetDestinationsById(ctx, req)
+	if err != nil {
+		u.Log.Error(err.Error())
+	}
+	u.Log.Info("GetDestinationsById rpc method finished")
+	return res, nil
+}
+func (u *ContentService) SendMessage(ctx context.Context, req *pb.SendMessageReq) (*pb.SendMessageRes, error) {
+	u.Log.Info("SendMessage rpc method started")
+	res, err := u.Repo.SendMessage(ctx, req)
+	if err != nil {
+		u.Log.Error(err.Error())
+		return nil, err
+	}
+	u.Log.Info("SendMessage rpc method finished")
+	return res, nil
+}
+func (u *ContentService) GetMessages(ctx context.Context, req *pb.GetMessagesReq) (*pb.GetMessagesRes, error) {
+	u.Log.Info("GetMessages rpc method started")
+	res, err := u.Repo.GetMessages(ctx, req)
+	if err != nil {
+		u.Log.Error(err.Error())
+		return nil, err
+	}
+	u.Log.Info("GetMessages rpc method finished")
+	return res, nil
+}
+func (u *ContentService) CreateTips(ctx context.Context, req *pb.CreateTipsReq) (*pb.CreateTipsRes, error) {
+	u.Log.Info("CreateTips rpc method started")
+	res, err := u.Repo.CreateTips(ctx, req)
+	if err != nil {
+		u.Log.Error(err.Error())
+		return nil, err
+	}
+	u.Log.Info("CreateTips rpc method finished")
+	return res, nil
+}
+func (u *ContentService) GetTips(ctx context.Context, req *pb.GetTipsReq) (*pb.GetTipsRes, error) {
+	u.Log.Info("GetTips rpc method started")
+	res, err := u.Repo.GetTips(ctx, req)
+	if err != nil {
+		u.Log.Error(err.Error())
+		return nil, err
+	}
+	u.Log.Info("GetTips rpc method finished")
+	return res, nil
+}
+func (u *ContentService) GetUserStat(ctx context.Context, req *pb.GetUserStatReq) (*pb.GetUserStatRes, error) {
+	u.Log.Info("GetUserStat rpc method started")
+	res, err := u.Repo.GetUserStat(ctx, req)
+	if err != nil {
+		u.Log.Error(err.Error())
+		return nil, err
+	}
+	u.Log.Info("GetUserStat rpc method finished")
+	return res, nil
+}
