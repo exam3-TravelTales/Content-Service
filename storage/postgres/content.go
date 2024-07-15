@@ -102,13 +102,13 @@ func (c *ContentRepo) UpdateStory(ctx context.Context, request *pb.UpdateStories
 }
 
 func (c *ContentRepo) DeleteStory(ctx context.Context, id *pb.StoryId) error {
-	// Prepare the SQL query to mark the story as deleted by setting the deleted_at field
+
 	query := `
         UPDATE stories
         SET deleted_at = date_part('epoch', current_timestamp)::INT
         WHERE id = $1 and deleted_at = 0
     `
-	// Execute the query
+
 	_, err := c.DB.ExecContext(ctx, query, id.Id)
 	if err != nil {
 		return err
@@ -159,7 +159,6 @@ func (c *ContentRepo) GetAllStory(ctx context.Context, request *pb.GetAllStories
 		return nil, err
 	}
 
-	// Count total number of stories
 	countQuery := `SELECT COUNT(*) FROM stories WHERE deleted_at = 0`
 	var total int64
 	err = c.DB.QueryRowContext(ctx, countQuery).Scan(&total)
@@ -178,7 +177,7 @@ func (c *ContentRepo) GetAllStory(ctx context.Context, request *pb.GetAllStories
 }
 
 func (c *ContentRepo) GetStoryById(ctx context.Context, id *pb.StoryId) (*pb.GetStoryRes, error) {
-	// Query to get the story details
+
 	storyQuery := `
         SELECT s.id, s.title, s.content, s.location, s.likes_count, s.comments_count, s.created_at, s.updated_at,
                u.id, u.username, u.full_name
@@ -207,10 +206,8 @@ func (c *ContentRepo) GetStoryById(ctx context.Context, id *pb.StoryId) (*pb.Get
 		return nil, err
 	}
 
-	// Assign the author to the story
 	story.Author = &author
 
-	// Query to get the story tags
 	tagQuery := `SELECT tag FROM story_tags WHERE story_id = $1`
 	rows, err := c.DB.QueryContext(ctx, tagQuery, story.Id)
 	if err != nil {
@@ -227,14 +224,13 @@ func (c *ContentRepo) GetStoryById(ctx context.Context, id *pb.StoryId) (*pb.Get
 		tags = append(tags, tag)
 	}
 
-	// Assign the tags to the story
 	story.Tags = tags
 
 	return &story, nil
 }
 
 func (c *ContentRepo) CommentToStory(ctx context.Context, req *pb.CommentStoryReq) (*pb.CommentStoryRes, error) {
-	// Query to insert a new comment
+
 	query := `
         INSERT INTO comments (id, content, author_id, story_id, created_at)
         VALUES (gen_random_uuid(), $1, $2, $3, CURRENT_TIMESTAMP)
@@ -243,7 +239,6 @@ func (c *ContentRepo) CommentToStory(ctx context.Context, req *pb.CommentStoryRe
 
 	var comment pb.CommentStoryRes
 
-	// Execute the query and scan the result into the response struct
 	err := c.DB.QueryRowContext(ctx, query, req.Content, req.AuthorId, req.StoryId).Scan(
 		&comment.Id,
 		&comment.Content,
@@ -259,13 +254,12 @@ func (c *ContentRepo) CommentToStory(ctx context.Context, req *pb.CommentStoryRe
 }
 
 func (c *ContentRepo) GetCommentsOfStory(ctx context.Context, req *pb.GetCommentsOfStoryReq) (*pb.GetCommentsOfStoryRes, error) {
-	// Initialize response structure
+
 	res := &pb.GetCommentsOfStoryRes{
 		Offset: req.Offset,
 		Limit:  req.Limit,
 	}
 
-	// Query to get the total number of comments for the given story
 	totalQuery := `
         SELECT COUNT(*)
         FROM comments
@@ -278,7 +272,6 @@ func (c *ContentRepo) GetCommentsOfStory(ctx context.Context, req *pb.GetComment
 	}
 	res.Total = totalComments
 
-	// Query to get the comments for the given story with pagination
 	commentsQuery := `
         SELECT c.id, c.content, c.created_at, u.id, u.username, u.full_name
         FROM comments c
@@ -311,7 +304,7 @@ func (c *ContentRepo) GetCommentsOfStory(ctx context.Context, req *pb.GetComment
 }
 
 func (c *ContentRepo) Like(ctx context.Context, req *pb.LikeReq) (*pb.LikeRes, error) {
-	// Insert the like into the database
+
 	query := `
         INSERT INTO likes (user_id, story_id, created_at)
         VALUES ($1, $2, CURRENT_TIMESTAMP)
@@ -325,7 +318,6 @@ func (c *ContentRepo) Like(ctx context.Context, req *pb.LikeReq) (*pb.LikeRes, e
 		return nil, err
 	}
 
-	// Return the LikeRes message
 	res := &pb.LikeRes{
 		UserId:  req.UserId,
 		StoryId: req.StoryId,
@@ -336,13 +328,12 @@ func (c *ContentRepo) Like(ctx context.Context, req *pb.LikeReq) (*pb.LikeRes, e
 }
 
 func (c *ContentRepo) Itineraries(ctx context.Context, req *pb.ItinerariesReq) (*pb.ItinerariesRes, error) {
-	// Begin a transaction
+
 	tx, err := c.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// Insert the itinerary
 	itineraryQuery := `
         INSERT INTO itineraries (title, description, start_date, end_date, author_id, created_at)
         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
@@ -356,7 +347,6 @@ func (c *ContentRepo) Itineraries(ctx context.Context, req *pb.ItinerariesReq) (
 		return nil, err
 	}
 
-	// Insert the destinations
 	destinationQuery := `
         INSERT INTO itinerary_destinations (itinerary_id, name, start_date, end_date)
         VALUES ($1, $2, $3, $4)
@@ -370,7 +360,6 @@ func (c *ContentRepo) Itineraries(ctx context.Context, req *pb.ItinerariesReq) (
 			return nil, err
 		}
 
-		// Insert the activities for the destination
 		activityQuery := `
             INSERT INTO itinerary_activities (destination_id, activity)
             VALUES ($1, $2)
@@ -384,7 +373,6 @@ func (c *ContentRepo) Itineraries(ctx context.Context, req *pb.ItinerariesReq) (
 		}
 	}
 
-	// Commit the transaction
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -393,13 +381,12 @@ func (c *ContentRepo) Itineraries(ctx context.Context, req *pb.ItinerariesReq) (
 }
 
 func (c *ContentRepo) UpdateItineraries(ctx context.Context, req *pb.UpdateItinerariesReq) (*pb.ItinerariesRes, error) {
-	// Begin a transaction
+
 	tx, err := c.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// Update the itinerary details
 	query := `
         UPDATE itineraries
         SET title = $1, description = $2, updated_at = CURRENT_TIMESTAMP
@@ -416,7 +403,6 @@ func (c *ContentRepo) UpdateItineraries(ctx context.Context, req *pb.UpdateItine
 		return nil, err
 	}
 
-	// Commit the transaction
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -430,7 +416,6 @@ func (c *ContentRepo) DeleteItineraries(ctx context.Context, req *pb.StoryId) er
 		return err
 	}
 
-	// Mark the itinerary as deleted by updating the deleted_at field
 	query := `
         UPDATE itineraries
         SET deleted_at = date_part('epoch', current_timestamp)::INT
@@ -442,7 +427,6 @@ func (c *ContentRepo) DeleteItineraries(ctx context.Context, req *pb.StoryId) er
 		return err
 	}
 
-	// Commit the transaction
 	if err := tx.Commit(); err != nil {
 		return err
 	}
@@ -451,7 +435,7 @@ func (c *ContentRepo) DeleteItineraries(ctx context.Context, req *pb.StoryId) er
 }
 
 func (c *ContentRepo) GetItineraries(ctx context.Context, req *pb.GetItinerariesReq) (*pb.GetItinerariesRes, error) {
-	// Query to get the total number of itineraries
+
 	var total int64
 	totalQuery := `SELECT COUNT(*) FROM itineraries WHERE deleted_at = 0`
 	err := c.DB.QueryRowContext(ctx, totalQuery).Scan(&total)
@@ -459,7 +443,6 @@ func (c *ContentRepo) GetItineraries(ctx context.Context, req *pb.GetItineraries
 		return nil, err
 	}
 
-	// Query to get the itineraries with pagination
 	itinerariesQuery := `
         SELECT id, title, description, start_date, end_date, author_id, created_at
         FROM itineraries
@@ -608,7 +591,7 @@ func (c *ContentRepo) CommentItineraries(ctx context.Context, req *pb.CommentIti
 }
 
 func (c *ContentRepo) GetDestinations(ctx context.Context, req *pb.GetDestinationsReq) (*pb.GetDestinationsRes, error) {
-	// Prepare the SQL query to fetch destinations
+
 	query := `
         SELECT id, name, country, description, currency
         FROM destinations
@@ -617,7 +600,6 @@ func (c *ContentRepo) GetDestinations(ctx context.Context, req *pb.GetDestinatio
         LIMIT $2 OFFSET $3
     `
 
-	// Execute the query
 	rows, err := c.DB.QueryContext(ctx, query, req.Name, req.Limit, req.Offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch destinations: %v", err)
@@ -639,7 +621,6 @@ func (c *ContentRepo) GetDestinations(ctx context.Context, req *pb.GetDestinatio
 		destinations = append(destinations, &destination)
 	}
 
-	// Count total number of destinations
 	countQuery := `
         SELECT COUNT(*)
         FROM destinations
@@ -651,7 +632,6 @@ func (c *ContentRepo) GetDestinations(ctx context.Context, req *pb.GetDestinatio
 		return nil, fmt.Errorf("failed to fetch total count of destinations: %v", err)
 	}
 
-	// Create response
 	res := &pb.GetDestinationsRes{
 		Destination: destinations,
 		Total:       total,
@@ -689,7 +669,7 @@ func (c *ContentRepo) GetDestinationsById(ctx context.Context, req *pb.GetDestin
 }
 
 func (c *ContentRepo) SendMessage(ctx context.Context, req *pb.SendMessageReq) (*pb.SendMessageRes, error) {
-	// Insert the message into the database
+
 	query := `
         INSERT INTO messages (id, sender_id, recipient_id, content, created_at)
         VALUES (gen_random_uuid(), $1, $2, $3, CURRENT_TIMESTAMP)
@@ -711,7 +691,7 @@ func (c *ContentRepo) SendMessage(ctx context.Context, req *pb.SendMessageReq) (
 }
 
 func (c *ContentRepo) GetMessages(ctx context.Context, req *pb.GetMessagesReq) (*pb.GetMessagesRes, error) {
-	// Query to fetch messages
+
 	query := `
         SELECT m.id, m.content, 
                s.user_id AS sender_user_id, s.username AS sender_username, s.full_name AS sender_full_name,
@@ -723,7 +703,6 @@ func (c *ContentRepo) GetMessages(ctx context.Context, req *pb.GetMessagesReq) (
         LIMIT $1 OFFSET $2
     `
 
-	// Execute the query
 	rows, err := c.DB.QueryContext(ctx, query, req.Limit, req.Offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch messages: %v", err)
@@ -735,7 +714,6 @@ func (c *ContentRepo) GetMessages(ctx context.Context, req *pb.GetMessagesReq) (
 		var message pb.Messages
 		var sender, recipient pb.Author
 
-		// Scan row into message and author structs
 		if err := rows.Scan(
 			&message.Id, &message.Content,
 			&sender.UserId, &sender.Username, &sender.FullName,
@@ -749,14 +727,12 @@ func (c *ContentRepo) GetMessages(ctx context.Context, req *pb.GetMessagesReq) (
 		messages = append(messages, &message)
 	}
 
-	// Count total number of messages
 	countQuery := `SELECT COUNT(*) FROM messages`
 	var total int64
 	if err := c.DB.QueryRowContext(ctx, countQuery).Scan(&total); err != nil {
 		return nil, fmt.Errorf("failed to fetch total message count: %v", err)
 	}
 
-	// Prepare response
 	res := &pb.GetMessagesRes{
 		Messages: messages,
 		Total:    total,
@@ -768,10 +744,9 @@ func (c *ContentRepo) GetMessages(ctx context.Context, req *pb.GetMessagesReq) (
 }
 
 func (c *ContentRepo) CreateTips(ctx context.Context, req *pb.CreateTipsReq) (*pb.CreateTipsRes, error) {
-	// Extract user_id from the request
+
 	authorID := req.UserId
 
-	// SQL query to insert a new tip into the database
 	query := `
         INSERT INTO travel_tips (title, content, category, author_id, created_at)
         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
@@ -779,13 +754,12 @@ func (c *ContentRepo) CreateTips(ctx context.Context, req *pb.CreateTipsReq) (*p
     `
 
 	var id string
-	// Execute the query and retrieve the inserted tip's ID
+
 	err := c.DB.QueryRowContext(ctx, query, req.Title, req.Content, req.Category, authorID).Scan(&id)
 	if err != nil {
 		return nil, err
 	}
 
-	// Prepare the response message
 	res := &pb.CreateTipsRes{
 		Id:       id,
 		Title:    req.Title,
@@ -798,7 +772,6 @@ func (c *ContentRepo) CreateTips(ctx context.Context, req *pb.CreateTipsReq) (*p
 }
 
 func (c *ContentRepo) GetTips(ctx context.Context, req *pb.GetTipsReq) (*pb.GetTipsRes, error) {
-	// Query to retrieve tips with pagination
 	query := `
         SELECT tt.id, tt.title, tt.category, u.id AS user_id, u.username, u.full_name
         FROM travel_tips tt
@@ -806,21 +779,17 @@ func (c *ContentRepo) GetTips(ctx context.Context, req *pb.GetTipsReq) (*pb.GetT
         WHERE tt.deleted_at = 0
     `
 
-	// Prepare parameters and conditions based on the request
 	queryParams := make([]interface{}, 0)
 	conditions := make([]string, 0)
 
-	// Filter by category if provided
 	if req.Category != "" {
 		conditions = append(conditions, "tt.category = $1")
 		queryParams = append(queryParams, req.Category)
 	}
 
-	// Offset and limit for pagination
 	queryParams = append(queryParams, req.Limit, req.Offset)
 	query += " ORDER BY tt.created_at DESC OFFSET $2 LIMIT $3"
 
-	// Execute the query
 	rows, err := c.DB.QueryContext(ctx, query, queryParams...)
 	if err != nil {
 		return nil, err
@@ -850,7 +819,6 @@ func (c *ContentRepo) GetTips(ctx context.Context, req *pb.GetTipsReq) (*pb.GetT
 		tips = append(tips, tip)
 	}
 
-	// Count total number of tips
 	countQuery := `
         SELECT COUNT(*) AS total
         FROM travel_tips tt
@@ -866,7 +834,6 @@ func (c *ContentRepo) GetTips(ctx context.Context, req *pb.GetTipsReq) (*pb.GetT
 		return nil, err
 	}
 
-	// Prepare response
 	res := &pb.GetTipsRes{
 		Tips:   tips,
 		Total:  total,
@@ -878,12 +845,11 @@ func (c *ContentRepo) GetTips(ctx context.Context, req *pb.GetTipsReq) (*pb.GetT
 }
 
 func (c *ContentRepo) GetUserStat(ctx context.Context, req *pb.GetUserStatReq) (*pb.GetUserStatRes, error) {
-	// Initialize response structure
+
 	res := &pb.GetUserStatRes{
 		UserId: req.UserId,
 	}
 
-	// Query to get total stories by user
 	storyQuery := `
         SELECT COUNT(*) AS total_stories
         FROM stories
@@ -896,7 +862,6 @@ func (c *ContentRepo) GetUserStat(ctx context.Context, req *pb.GetUserStatReq) (
 	}
 	res.TotalStories = fmt.Sprintf("%d", totalStories)
 
-	// Query to get total itineraries by user
 	itineraryQuery := `
         SELECT COUNT(*) AS total_itineraries
         FROM itineraries
@@ -909,7 +874,6 @@ func (c *ContentRepo) GetUserStat(ctx context.Context, req *pb.GetUserStatReq) (
 	}
 	res.TotalItineraries = fmt.Sprintf("%d", totalItineraries)
 
-	// Query to get total countries visited by user
 	countriesQuery := `
         SELECT countries_visited
         FROM users
@@ -922,7 +886,6 @@ func (c *ContentRepo) GetUserStat(ctx context.Context, req *pb.GetUserStatReq) (
 	}
 	res.TotalCountriesVisited = fmt.Sprintf("%d", totalCountries)
 
-	// Query to get total likes received by user's stories and itineraries
 	likesQuery := `
         SELECT SUM(likes_count) AS total_likes_received
         FROM (
@@ -946,7 +909,6 @@ func (c *ContentRepo) GetUserStat(ctx context.Context, req *pb.GetUserStatReq) (
 		res.TotalLikesReceived = "0"
 	}
 
-	// Query to get total comments received by user's stories and itineraries
 	commentsQuery := `
         SELECT SUM(comments_count) AS total_comments_received
         FROM (
@@ -970,7 +932,6 @@ func (c *ContentRepo) GetUserStat(ctx context.Context, req *pb.GetUserStatReq) (
 		res.TotalCommentsReceived = "0"
 	}
 
-	// Query to get the most popular story by likes
 	popularStoryQuery := `
         SELECT id, title, likes_count
         FROM stories
@@ -991,7 +952,6 @@ func (c *ContentRepo) GetUserStat(ctx context.Context, req *pb.GetUserStatReq) (
 	}
 	res.MostPopularStory = &popularStory
 
-	// Query to get the most popular itinerary by likes
 	popularItineraryQuery := `
         SELECT id, title, likes_count
         FROM itineraries
