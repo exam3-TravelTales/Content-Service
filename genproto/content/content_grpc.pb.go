@@ -24,7 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type ContentClient interface {
 	CreateStories(ctx context.Context, in *CreateStoriesRequest, opts ...grpc.CallOption) (*CreateStoriesResponse, error)
 	UpdateStories(ctx context.Context, in *UpdateStoriesReq, opts ...grpc.CallOption) (*UpdateStoriesRes, error)
-	DeleteStories(ctx context.Context, in *DeleteStoriesReq, opts ...grpc.CallOption) (*Void, error)
+	DeleteStories(ctx context.Context, in *StoryId, opts ...grpc.CallOption) (*Void, error)
 	GetAllStories(ctx context.Context, in *GetAllStoriesReq, opts ...grpc.CallOption) (*GetAllStoriesRes, error)
 	GetStory(ctx context.Context, in *StoryId, opts ...grpc.CallOption) (*GetStoryRes, error)
 	CommentStory(ctx context.Context, in *CommentStoryReq, opts ...grpc.CallOption) (*CommentStoryRes, error)
@@ -60,7 +60,7 @@ func (c *contentClient) UpdateStories(ctx context.Context, in *UpdateStoriesReq,
 	return out, nil
 }
 
-func (c *contentClient) DeleteStories(ctx context.Context, in *DeleteStoriesReq, opts ...grpc.CallOption) (*Void, error) {
+func (c *contentClient) DeleteStories(ctx context.Context, in *StoryId, opts ...grpc.CallOption) (*Void, error) {
 	out := new(Void)
 	err := c.cc.Invoke(ctx, "/content.Content/DeleteStories", in, out, opts...)
 	if err != nil {
@@ -138,7 +138,7 @@ func (c *contentClient) UpdateItineraries(ctx context.Context, in *UpdateItinera
 type ContentServer interface {
 	CreateStories(context.Context, *CreateStoriesRequest) (*CreateStoriesResponse, error)
 	UpdateStories(context.Context, *UpdateStoriesReq) (*UpdateStoriesRes, error)
-	DeleteStories(context.Context, *DeleteStoriesReq) (*Void, error)
+	DeleteStories(context.Context, *StoryId) (*Void, error)
 	GetAllStories(context.Context, *GetAllStoriesReq) (*GetAllStoriesRes, error)
 	GetStory(context.Context, *StoryId) (*GetStoryRes, error)
 	CommentStory(context.Context, *CommentStoryReq) (*CommentStoryRes, error)
@@ -159,7 +159,7 @@ func (UnimplementedContentServer) CreateStories(context.Context, *CreateStoriesR
 func (UnimplementedContentServer) UpdateStories(context.Context, *UpdateStoriesReq) (*UpdateStoriesRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateStories not implemented")
 }
-func (UnimplementedContentServer) DeleteStories(context.Context, *DeleteStoriesReq) (*Void, error) {
+func (UnimplementedContentServer) DeleteStories(context.Context, *StoryId) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteStories not implemented")
 }
 func (UnimplementedContentServer) GetAllStories(context.Context, *GetAllStoriesReq) (*GetAllStoriesRes, error) {
@@ -233,7 +233,7 @@ func _Content_UpdateStories_Handler(srv interface{}, ctx context.Context, dec fu
 }
 
 func _Content_DeleteStories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteStoriesReq)
+	in := new(StoryId)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -245,7 +245,7 @@ func _Content_DeleteStories_Handler(srv interface{}, ctx context.Context, dec fu
 		FullMethod: "/content.Content/DeleteStories",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ContentServer).DeleteStories(ctx, req.(*DeleteStoriesReq))
+		return srv.(ContentServer).DeleteStories(ctx, req.(*StoryId))
 	}
 	return interceptor(ctx, in, info, handler)
 }
