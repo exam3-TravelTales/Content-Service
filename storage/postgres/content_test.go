@@ -135,3 +135,29 @@ func TestGetStory(t *testing.T) {
 		t.Errorf("GetStoryRequest returned %+v, want %+v", req, res)
 	}
 }
+
+func TestCommentToStory(t *testing.T) {
+	db, err := ConnectDB()
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	con := NewContentRepository(db)
+	res, err := con.CommentToStory(context.Background(), &pb.CommentStoryReq{
+		StoryId:  "050a8f3b-a3e5-4ed1-abe4-cdf030977788",
+		Content:  "zor",
+		AuthorId: "45e65723-0781-4e7d-bb7f-e87efddda823",
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
+	req := &pb.CommentStoryRes{
+		Id:       "59e8ef8b-d019-4986-994b-db8aa1083cc1",
+		StoryId:  "050a8f3b-a3e5-4ed1-abe4-cdf030977788",
+		Content:  "zor",
+		AuthorId: "45e65723-0781-4e7d-bb7f-e87efddda823",
+	}
+	if !reflect.DeepEqual(req, res) {
+		t.Errorf("CommentToStoryRequest returned %+v, want %+v", req, res)
+	}
+}

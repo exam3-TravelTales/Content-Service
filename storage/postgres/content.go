@@ -324,3 +324,92 @@ func (c *ContentRepo) Like(ctx context.Context, req *pb.LikeReq) (*pb.LikeRes, e
 
 	return res, nil
 }
+
+func (c *ContentRepo) Itineraries(ctx context.Context, req *pb.ItinerariesReq) (*pb.ItinerariesRes, error) {
+	// Begin a transaction
+	tx, err := c.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Insert the itinerary
+	itineraryQuery := `
+        INSERT INTO itineraries (title, description, start_date, end_date, author_id, created_at)
+        VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+        RETURNING id, title, description, start_date, end_date, author_id, created_at
+    `
+	var itinerary pb.ItinerariesRes
+	err = tx.QueryRowContext(ctx, itineraryQuery, req.Title, req.Description, req.StartDate, req.EndDate, req.UserId).Scan(
+		&itinerary.Id, &itinerary.Title, &itinerary.Description, &itinerary.StartDate, &itinerary.EndDate, &itinerary.UserId, &itinerary.CreatedAt)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Insert the destinations
+	destinationQuery := `
+        INSERT INTO itinerary_destinations (itinerary_id, name, start_date, end_date)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+    `
+	for _, dest := range req.Destinations {
+		var destinationID string
+		err = tx.QueryRowContext(ctx, destinationQuery, itinerary.Id, dest.Name, dest.StartDate, dest.EndDate).Scan(&destinationID)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		// Insert the activities for the destination
+		activityQuery := `
+            INSERT INTO itinerary_activities (destination_id, activity)
+            VALUES ($1, $2)
+        `
+		for _, activity := range dest.Activities {
+			_, err = tx.ExecContext(ctx, activityQuery, destinationID, activity.Text)
+			if err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &itinerary, nil
+}
+
+func (c *ContentRepo) UpdateItineraries(ctx context.Context, req *pb.UpdateItinerariesReq) (*pb.ItinerariesRes, error) {
+	// Begin a transaction
+	tx, err := c.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update the itinerary details
+	query := `
+        UPDATE itineraries
+        SET title = $1, description = $2, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $3 AND deleted_at = 0
+        RETURNING id, title, description, start_date, end_date, author_id, created_at
+    `
+	var updatedItinerary pb.ItinerariesRes
+	err = tx.QueryRowContext(ctx, query, req.Title, req.Description, req.Id).Scan(
+		&updatedItinerary.Id, &updatedItinerary.Title, &updatedItinerary.Description,
+		&updatedItinerary.StartDate, &updatedItinerary.EndDate, &updatedItinerary.UserId,
+		&updatedItinerary.CreatedAt)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &updatedItinerary, nil
+}
