@@ -43,6 +43,7 @@ type ContentClient interface {
 	CreateTips(ctx context.Context, in *CreateTipsReq, opts ...grpc.CallOption) (*CreateTipsRes, error)
 	GetTips(ctx context.Context, in *GetTipsReq, opts ...grpc.CallOption) (*GetTipsRes, error)
 	GetUserStat(ctx context.Context, in *GetUserStatReq, opts ...grpc.CallOption) (*GetUserStatRes, error)
+	TopDestinations(ctx context.Context, in *Void, opts ...grpc.CallOption) (*Answer, error)
 }
 
 type contentClient struct {
@@ -242,6 +243,15 @@ func (c *contentClient) GetUserStat(ctx context.Context, in *GetUserStatReq, opt
 	return out, nil
 }
 
+func (c *contentClient) TopDestinations(ctx context.Context, in *Void, opts ...grpc.CallOption) (*Answer, error) {
+	out := new(Answer)
+	err := c.cc.Invoke(ctx, "/content.Content/TopDestinations", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ContentServer is the server API for Content service.
 // All implementations must embed UnimplementedContentServer
 // for forward compatibility
@@ -267,6 +277,7 @@ type ContentServer interface {
 	CreateTips(context.Context, *CreateTipsReq) (*CreateTipsRes, error)
 	GetTips(context.Context, *GetTipsReq) (*GetTipsRes, error)
 	GetUserStat(context.Context, *GetUserStatReq) (*GetUserStatRes, error)
+	TopDestinations(context.Context, *Void) (*Answer, error)
 	mustEmbedUnimplementedContentServer()
 }
 
@@ -336,6 +347,9 @@ func (UnimplementedContentServer) GetTips(context.Context, *GetTipsReq) (*GetTip
 }
 func (UnimplementedContentServer) GetUserStat(context.Context, *GetUserStatReq) (*GetUserStatRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserStat not implemented")
+}
+func (UnimplementedContentServer) TopDestinations(context.Context, *Void) (*Answer, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TopDestinations not implemented")
 }
 func (UnimplementedContentServer) mustEmbedUnimplementedContentServer() {}
 
@@ -728,6 +742,24 @@ func _Content_GetUserStat_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Content_TopDestinations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Void)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContentServer).TopDestinations(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/content.Content/TopDestinations",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContentServer).TopDestinations(ctx, req.(*Void))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Content_ServiceDesc is the grpc.ServiceDesc for Content service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -818,6 +850,10 @@ var Content_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserStat",
 			Handler:    _Content_GetUserStat_Handler,
+		},
+		{
+			MethodName: "TopDestinations",
+			Handler:    _Content_TopDestinations_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

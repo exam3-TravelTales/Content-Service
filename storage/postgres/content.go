@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
 type ContentRepo struct {
@@ -13,6 +14,7 @@ type ContentRepo struct {
 
 func NewContentRepository(db *sql.DB) *ContentRepo {
 	return &ContentRepo{DB: db}
+
 }
 
 func (c *ContentRepo) CreateStory(ctx context.Context, request *pb.CreateStoriesRequest) (*pb.CreateStoriesResponse, error) {
@@ -249,6 +251,13 @@ func (c *ContentRepo) CommentToStory(ctx context.Context, req *pb.CommentStoryRe
 	if err != nil {
 		return nil, err
 	}
+	updatequery := `
+	UPDATE stories SET comments_count = comments_count + 1 WHERE id = $1
+	`
+	_, err = c.DB.ExecContext(ctx, updatequery, req.StoryId)
+	if err != nil {
+		return nil, err
+	}
 
 	return &comment, nil
 }
@@ -322,6 +331,14 @@ func (c *ContentRepo) Like(ctx context.Context, req *pb.LikeReq) (*pb.LikeRes, e
 		UserId:  req.UserId,
 		StoryId: req.StoryId,
 		LikedAt: likedAt,
+	}
+
+	updatequery := `
+	UPDATE stories SET likes_count = likes_count + 1 WHERE id = $1
+	`
+	_, err = c.DB.ExecContext(ctx, updatequery, req.StoryId)
+	if err != nil {
+		return nil, err
 	}
 
 	return res, nil
@@ -490,13 +507,16 @@ func (c *ContentRepo) GetItineraries(ctx context.Context, req *pb.GetItineraries
 
 func (c *ContentRepo) GetItinerariesById(ctx context.Context, req *pb.StoryId) (*pb.GetItinerariesByIdRes, error) {
 
+	itinerary := pb.GetItinerariesByIdRes{
+		Author: &pb.Author{},
+	}
+
 	itineraryQuery := `
         SELECT i.id, i.title, i.description, i.start_date, i.end_date, u.id, u.username, u.full_name
         FROM itineraries i
         JOIN users u ON i.author_id = u.id
         WHERE i.id = $1 AND i.deleted_at = 0
     `
-	var itinerary pb.GetItinerariesByIdRes
 	err := c.DB.QueryRowContext(ctx, itineraryQuery, req.Id).Scan(
 		&itinerary.Id,
 		&itinerary.Title,
@@ -512,7 +532,7 @@ func (c *ContentRepo) GetItinerariesById(ctx context.Context, req *pb.StoryId) (
 	}
 
 	destinationsQuery := `
-        SELECT id, name, start_date, end_date
+        SELECT name, start_date, end_date
         FROM itinerary_destinations
         WHERE itinerary_id = $1
     `
@@ -537,7 +557,11 @@ func (c *ContentRepo) GetItinerariesById(ctx context.Context, req *pb.StoryId) (
 		activitiesQuery := `
             SELECT activity
             FROM itinerary_activities
-            WHERE destination_id = $1
+            WHERE destination_id in (
+                SELECT id
+                FROM itinerary_destinations
+                WHERE name = $1
+            )
         `
 		activityRows, err := c.DB.QueryContext(ctx, activitiesQuery, destination.Name)
 		if err != nil {
@@ -553,6 +577,10 @@ func (c *ContentRepo) GetItinerariesById(ctx context.Context, req *pb.StoryId) (
 				return nil, err
 			}
 			activities = append(activities, &activity)
+		}
+
+		if err = activityRows.Err(); err != nil {
+			return nil, err
 		}
 
 		destination.Activities = activities
@@ -693,14 +721,15 @@ func (c *ContentRepo) SendMessage(ctx context.Context, req *pb.SendMessageReq) (
 func (c *ContentRepo) GetMessages(ctx context.Context, req *pb.GetMessagesReq) (*pb.GetMessagesRes, error) {
 
 	query := `
-        SELECT m.id, m.content, 
-               s.user_id AS sender_user_id, s.username AS sender_username, s.full_name AS sender_full_name,
-               r.user_id AS recipient_user_id, r.username AS recipient_username, r.full_name AS recipient_full_name
-        FROM messages m
-        INNER JOIN users s ON m.sender_id = s.id
-        INNER JOIN users r ON m.recipient_id = r.id
-        ORDER BY m.created_at DESC
-        LIMIT $1 OFFSET $2
+	SELECT m.id, m.content, 
+	s.id AS sender_user_id, s.username AS sender_username, s.full_name AS sender_full_name,
+	r.id AS recipient_user_id, r.username AS recipient_username, r.full_name AS recipient_full_name
+FROM messages m
+INNER JOIN users s ON m.sender_id = s.id
+INNER JOIN users r ON m.recipient_id = r.id
+ORDER BY m.created_at DESC
+LIMIT $1 OFFSET $2
+
     `
 
 	rows, err := c.DB.QueryContext(ctx, query, req.Limit, req.Offset)
@@ -776,19 +805,24 @@ func (c *ContentRepo) GetTips(ctx context.Context, req *pb.GetTipsReq) (*pb.GetT
         SELECT tt.id, tt.title, tt.category, u.id AS user_id, u.username, u.full_name
         FROM travel_tips tt
         JOIN users u ON tt.author_id = u.id
-        WHERE tt.deleted_at = 0
     `
 
 	queryParams := make([]interface{}, 0)
 	conditions := make([]string, 0)
 
+	n := 1
 	if req.Category != "" {
-		conditions = append(conditions, "tt.category = $1")
+		conditions = append(conditions, fmt.Sprintf("tt.category = $%d", n))
 		queryParams = append(queryParams, req.Category)
+		n++
 	}
 
-	queryParams = append(queryParams, req.Limit, req.Offset)
-	query += " ORDER BY tt.created_at DESC OFFSET $2 LIMIT $3"
+	if len(conditions) > 0 {
+		query += " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	queryParams = append(queryParams, req.Offset, req.Limit)
+	query += fmt.Sprintf(" ORDER BY tt.created_at DESC OFFSET $%d LIMIT $%d", n, n+1)
 
 	rows, err := c.DB.QueryContext(ctx, query, queryParams...)
 	if err != nil {
@@ -822,14 +856,18 @@ func (c *ContentRepo) GetTips(ctx context.Context, req *pb.GetTipsReq) (*pb.GetT
 	countQuery := `
         SELECT COUNT(*) AS total
         FROM travel_tips tt
-        WHERE tt.deleted_at = 0
     `
-	if req.Category != "" {
-		countQuery += " AND tt.category = $1"
+	if len(conditions) > 0 {
+		countQuery += " WHERE " + strings.Join(conditions, " AND ")
 	}
 
 	var total int64
-	err = c.DB.QueryRowContext(ctx, countQuery, queryParams...).Scan(&total)
+	countQueryParams := make([]interface{}, 0)
+	if req.Category != "" {
+		countQueryParams = append(countQueryParams, req.Category)
+	}
+
+	err = c.DB.QueryRowContext(ctx, countQuery, countQueryParams...).Scan(&total)
 	if err != nil {
 		return nil, err
 	}
@@ -971,6 +1009,45 @@ func (c *ContentRepo) GetUserStat(ctx context.Context, req *pb.GetUserStatReq) (
 		}
 	}
 	res.MostPopularItinerary = &popularItinerary
+
+	return res, nil
+}
+
+func (c *ContentRepo) GetTopDestinations(ctx context.Context) (*pb.Answer, error) {
+	query := `
+        SELECT country, description, best_time_to_visit, popularity_score
+        FROM destinations
+        ORDER BY popularity_score DESC
+        LIMIT 10
+    `
+
+	rows, err := c.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var topDestinations []*pb.TopDestinationsRes
+	for rows.Next() {
+		var destination pb.TopDestinationsRes
+		if err := rows.Scan(
+			&destination.Country,
+			&destination.Description,
+			&destination.BestTimeToVisit,
+			&destination.PopularityScore,
+		); err != nil {
+			return nil, err
+		}
+		topDestinations = append(topDestinations, &destination)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	res := &pb.Answer{
+		Topdestinations: topDestinations,
+	}
 
 	return res, nil
 }

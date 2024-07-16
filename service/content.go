@@ -4,6 +4,7 @@ import (
 	pb "content/genproto/content"
 	"content/logger"
 	"content/storage/postgres"
+	"content/storage/redis"
 	"context"
 	"database/sql"
 	"log/slog"
@@ -237,5 +238,16 @@ func (u *ContentService) GetUserStat(ctx context.Context, req *pb.GetUserStatReq
 		return nil, err
 	}
 	u.Log.Info("GetUserStat rpc method finished")
+	return res, nil
+}
+
+func (u *ContentService) TopDestinations(ctx context.Context, req *pb.Void) (*pb.Answer, error) {
+	u.Log.Info("TopDestinations rpc method started")
+	res, err := redis.SaveTopDestinations(ctx, u.Repo)
+	if err != nil {
+		u.Log.Error(err.Error())
+		return nil, err
+	}
+	u.Log.Info("TopDestinations rpc method finished")
 	return res, nil
 }
