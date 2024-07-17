@@ -1,7 +1,7 @@
 package postgres
 
 import (
-	pb "content/genproto/content"
+	pb "content/genproto/story"
 	"context"
 	"fmt"
 	"reflect"
@@ -14,7 +14,7 @@ func TestCreateStory(t *testing.T) {
 		panic(err)
 	}
 	defer db.Close()
-	con := NewContentRepository(db)
+	con := NewStoryRepository(db)
 	req, err := con.CreateStory(context.Background(), &pb.CreateStoriesRequest{
 		Title:    "new",
 		Content:  "new",
@@ -48,7 +48,7 @@ func TestUpdateStory(t *testing.T) {
 		panic(err)
 	}
 	defer db.Close()
-	con := NewContentRepository(db)
+	con := NewStoryRepository(db)
 	req, err := con.UpdateStory(context.Background(), &pb.UpdateStoriesReq{
 		Id:      "3f9e0c08-323f-4fdf-868e-7bfbd092dabe",
 		Title:   "old",
@@ -78,7 +78,7 @@ func TestDeleteStory(t *testing.T) {
 		panic(err)
 	}
 	defer db.Close()
-	con := NewContentRepository(db)
+	con := NewStoryRepository(db)
 	err = con.DeleteStory(context.Background(), &pb.StoryId{
 		Id: "3f9e0c08-323f-4fdf-868e-7bfbd092dabe",
 	})
@@ -93,7 +93,7 @@ func TestGetAllStories(t *testing.T) {
 		panic(err)
 	}
 	defer db.Close()
-	con := NewContentRepository(db)
+	con := NewStoryRepository(db)
 	res, err := con.GetAllStory(context.Background(), &pb.GetAllStoriesReq{
 		Limit: 10,
 	})
@@ -109,7 +109,7 @@ func TestGetStory(t *testing.T) {
 		panic(err)
 	}
 	defer db.Close()
-	con := NewContentRepository(db)
+	con := NewStoryRepository(db)
 	res, err := con.GetStoryById(context.Background(), &pb.StoryId{Id: "050a8f3b-a3e5-4ed1-abe4-cdf030977788"})
 	fmt.Println(res)
 	if err != nil {
@@ -142,7 +142,7 @@ func TestCommentToStory(t *testing.T) {
 		panic(err)
 	}
 	defer db.Close()
-	con := NewContentRepository(db)
+	con := NewStoryRepository(db)
 	res, err := con.CommentToStory(context.Background(), &pb.CommentStoryReq{
 		StoryId:  "3f9e0c08-323f-4fdf-868e-7bfbd092dabe",
 		Content:  "zor",
@@ -168,7 +168,7 @@ func TestGetCommentsOfStory(t *testing.T) {
 		panic(err)
 	}
 	defer db.Close()
-	con := NewContentRepository(db)
+	con := NewStoryRepository(db)
 	res, err := con.GetCommentsOfStory(context.Background(), &pb.GetCommentsOfStoryReq{StoryId: "3f9e0c08-323f-4fdf-868e-7bfbd092dabe", Limit: 10})
 	fmt.Println(res)
 	if err != nil {

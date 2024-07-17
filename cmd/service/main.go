@@ -2,13 +2,16 @@ package main
 
 import (
 	"content/genproto/content"
+	"content/genproto/itineraries"
+	"content/genproto/story"
 
 	"content/service"
 	"content/storage/postgres"
 	"fmt"
-	"google.golang.org/grpc"
 	"log"
 	"net"
+
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -23,9 +26,17 @@ func main() {
 		log.Fatalf("error while listening: %v", err)
 	}
 	defer lis.Close()
-	Service := service.NewContentService(db)
+
+	Servicecn := service.NewContentService(db)
+	Servicest := service.NewStoryService(db)
+	Serviceit := service.NewItinerariesService(db)
+
 	server := grpc.NewServer()
-	content.RegisterContentServer(server, Service)
+
+	content.RegisterContentServer(server, Servicecn)
+	story.RegisterStoryServer(server, Servicest)
+	itineraries.RegisterItinerariesServer(server, Serviceit)
+
 	log.Printf("server listening at %v", lis.Addr())
 	err = server.Serve(lis)
 	if err != nil {
