@@ -14,7 +14,6 @@ type ContentRepo struct {
 
 func NewContentRepository(db *sql.DB) *ContentRepo {
 	return &ContentRepo{DB: db}
-
 }
 
 func (c *ContentRepo) CreateStory(ctx context.Context, request *pb.CreateStoriesRequest) (*pb.CreateStoriesResponse, error) {
